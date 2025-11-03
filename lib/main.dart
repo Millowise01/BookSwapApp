@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/book_provider.dart';
 import 'presentation/providers/swap_provider.dart';
@@ -12,12 +13,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Firebase
-  // NOTE: Uncomment this and remove try-catch after running: flutterfire configure
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    // Firebase not configured yet - will show error in app
-  }
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
   runApp(const BookSwapApp());
 }

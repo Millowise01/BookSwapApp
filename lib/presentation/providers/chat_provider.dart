@@ -5,8 +5,8 @@ import '../../domain/models/chat_model.dart';
 class ChatProvider with ChangeNotifier {
   final ChatRepository _chatRepository = ChatRepository();
 
-  List<Chat> _chats = [];
-  List<Message> _messages = [];
+  final List<Chat> _chats = [];
+  final List<Message> _messages = [];
   bool _isLoading = false;
   String? _errorMessage;
 

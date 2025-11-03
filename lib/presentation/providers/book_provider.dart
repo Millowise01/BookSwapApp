@@ -8,8 +8,8 @@ class BookProvider with ChangeNotifier {
   final BookRepository _bookRepository = BookRepository();
   final StorageRepository _storageRepository = StorageRepository();
 
-  List<BookListing> _allListings = [];
-  List<BookListing> _myListings = [];
+  final List<BookListing> _allListings = [];
+  final List<BookListing> _myListings = [];
   bool _isLoading = false;
   String? _errorMessage;
 

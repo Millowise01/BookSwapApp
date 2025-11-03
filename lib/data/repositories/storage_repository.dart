@@ -5,23 +5,25 @@ class StorageRepository {
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // Upload book cover image
-  Future<String> uploadBookCover(String bookId, File imageFile) async {
+  Future<String?> uploadBookCover(String bookId, File imageFile) async {
     try {
-      final ref = _storage.ref().child('book_covers/$bookId.jpg');
+      final ref = _storage.ref().child('books/$bookId.jpg');
       await ref.putFile(imageFile);
       return await ref.getDownloadURL();
     } catch (e) {
-      rethrow;
+      print('Storage upload error: $e');
+      return null; // Return null if upload fails
     }
   }
 
   // Delete book cover image
   Future<void> deleteBookCover(String bookId) async {
     try {
-      final ref = _storage.ref().child('book_covers/$bookId.jpg');
+      final ref = _storage.ref().child('books/$bookId.jpg');
       await ref.delete();
     } catch (e) {
-      rethrow;
+      print('Storage delete error: $e');
+      // Ignore delete errors for now
     }
   }
 }

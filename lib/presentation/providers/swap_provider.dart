@@ -5,8 +5,8 @@ import '../../domain/models/swap_model.dart';
 class SwapProvider with ChangeNotifier {
   final SwapRepository _swapRepository = SwapRepository();
 
-  List<SwapRequest> _sentRequests = [];
-  List<SwapRequest> _receivedRequests = [];
+  final List<SwapRequest> _sentRequests = [];
+  final List<SwapRequest> _receivedRequests = [];
   bool _isLoading = false;
   String? _errorMessage;
 
