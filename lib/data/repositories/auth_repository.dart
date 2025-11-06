@@ -24,12 +24,17 @@ class AuthRepository {
   }
 
   Future<bool> _isEmailVerified(String uid) async {
-    final user = _auth.currentUser;
-    if (user != null && user.uid == uid) {
-      await user.reload();
-      return user.emailVerified;
+    try {
+      final user = _auth.currentUser;
+      if (user != null && user.uid == uid) {
+        await user.reload().timeout(Duration(seconds: 3));
+        return user.emailVerified;
+      }
+      return false;
+    } catch (e) {
+      print('Email verification check error: $e');
+      return false;
     }
-    return false;
   }
 
   // Sign up
@@ -45,13 +50,28 @@ class AuthRepository {
         password: password,
       ).timeout(Duration(seconds: 30));
 
-      // Send email verification (non-blocking)
-      userCredential.user?.sendEmailVerification().catchError((e) {
+      // Send email verification
+      try {
+        await userCredential.user?.sendEmailVerification();
+        print('Verification email sent to: ${userCredential.user?.email}');
+      } catch (e) {
         print('Email verification error: $e');
-      });
+        // Continue anyway - user can request resend
+      }
 
-      // Try to create user profile in Firestore (non-blocking)
-      _createUserProfile(userCredential.user?.uid, email, name, university);
+      // Create user profile in Firestore (with timeout)
+      try {
+        await _firestore.collection('users').doc(userCredential.user?.uid).set({
+          'uid': userCredential.user?.uid,
+          'email': email,
+          'name': name,
+          'university': university,
+          'createdAt': FieldValue.serverTimestamp(),
+        }).timeout(Duration(seconds: 5));
+      } catch (e) {
+        print('Profile creation error: $e');
+        // Continue anyway - profile can be created later
+      }
 
       return userCredential;
     } catch (e) {
@@ -75,8 +95,21 @@ class AuthRepository {
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
-      ).timeout(Duration(seconds: 30));
+      ).timeout(Duration(seconds: 10));
 
+      // Reload user to get latest verification status
+      await userCredential.user?.reload();
+      
+      // Check email verification
+      if (!userCredential.user!.emailVerified) {
+        await signOut(); // Sign out unverified user
+        throw FirebaseAuthException(
+          code: 'email-not-verified',
+          message: 'Please verify your email before signing in. Check your inbox and spam folder.',
+        );
+      }
+
+      print('User signed in successfully: ${userCredential.user?.email}');
       return userCredential;
     } catch (e) {
       print('Signin error: $e');
@@ -91,22 +124,29 @@ class AuthRepository {
 
   // Resend verification email
   Future<void> resendVerificationEmail() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await user.sendEmailVerification();
+    try {
+      final user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        print('Verification email resent to: ${user.email}');
+      }
+    } catch (e) {
+      print('Resend verification error: $e');
+      rethrow;
     }
   }
 
   // Get user profile
   Future<UserModel?> getUserProfile(String uid) async {
-    // Return dummy profile for now
-    return UserModel(
-      uid: uid,
-      email: _auth.currentUser?.email ?? '',
-      name: 'User',
-      university: 'University',
-      createdAt: DateTime.now(),
-    );
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        return UserModel.fromJson(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
   // Stream user profile
